@@ -1274,11 +1274,6 @@ window.cvData = {
             return r.text();
           });
 
-          // Optional: make asset paths relative inside the ZIP
-          const finalHtml = templateHtml
-            .replaceAll("/assets/", "assets/")
-            .replaceAll("/data.js", "data.js");
-
           zip.file("index.html", finalHtml);
 
           // data.js
