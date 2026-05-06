@@ -2,6 +2,7 @@
 
 A minimal, elegant CV/portfolio website paired with a browser-based builder tool — no backend, no accounts, no installation required.
 
+[![Open Online](https://img.shields.io/badge/Open-Online-green?style=for-the-badge&logo=windows)](https://botaandrei-public.github.io/cv-website-builder/)
 ---
 
 ## What's in this repo
