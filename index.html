@@ -1,22 +1,1397 @@
 <!doctype html>
-<html lang="ro">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CV</title>
+    <title>CV Builder</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap");
 
-    <script src=".public/data.js"></script>
-
-    <script>
-      if (window.cvData && window.cvData.profile) {
-        document.title = `CV - ${window.cvData.profile.titleSite}`;
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
-    </script>
+
+      :root {
+        --bg: #0e0e0f;
+        --surface: #18181b;
+        --surface2: #1f1f23;
+        --border: #2e2e33;
+        --accent: #e8ff47;
+        --accent2: #47ffe8;
+        --text: #f0f0f0;
+        --muted: #888;
+        --danger: #ff4747;
+        --radius: 10px;
+      }
+
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        line-height: 1.6;
+      }
+
+      /* ── Layout ── */
+      .app {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        width: 220px;
+        flex-shrink: 0;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        padding: 24px 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-logo {
+        font-family: "DM Mono", monospace;
+        font-size: 13px;
+        color: var(--accent);
+        padding: 0 20px 24px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 16px;
+        letter-spacing: 0.05em;
+      }
+      .sidebar-logo span {
+        color: var(--muted);
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+        font-size: 13px;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.15s;
+        border-left: 2px solid transparent;
+        user-select: none;
+      }
+      .nav-item:hover {
+        color: var(--text);
+        background: var(--surface2);
+      }
+      .nav-item.active {
+        color: var(--accent);
+        border-left-color: var(--accent);
+        background: rgba(232, 255, 71, 0.05);
+      }
+      .nav-icon {
+        font-size: 16px;
+        width: 20px;
+        text-align: center;
+      }
+
+      .sidebar-bottom {
+        margin-top: auto;
+        padding: 16px 20px;
+        border-top: 1px solid var(--border);
+      }
+
+      .btn-export {
+        width: 100%;
+        padding: 11px;
+        background: var(--accent);
+        color: #0e0e0f;
+        border: none;
+        border-radius: var(--radius);
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        letter-spacing: 0.05em;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .btn-export:hover {
+        background: #d4eb30;
+        transform: translateY(-1px);
+      }
+      .btn-export:active {
+        transform: translateY(0);
+      }
+      .btn-export:disabled {
+        background: #3a3a3a;
+        color: var(--muted);
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* ── Main content ── */
+      .main {
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .section-page {
+        display: none;
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 40px 40px 80px;
+      }
+      .section-page.active {
+        display: block;
+      }
+
+      .page-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: var(--text);
+      }
+      .page-subtitle {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 32px;
+      }
+
+      /* ── Form elements ── */
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        font-family: "DM Mono", monospace;
+        color: var(--muted);
+        margin-bottom: 6px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      label .req {
+        color: var(--accent);
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="url"],
+      textarea {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        color: var(--text);
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      input:focus,
+      textarea:focus {
+        border-color: var(--accent);
+        background: #1a1a1e;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      input::placeholder,
+      textarea::placeholder {
+        color: #555;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      /* ── Cards (for list items) ── */
+      .card-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        transition: border-color 0.15s;
+      }
+      .card:hover {
+        border-color: #3e3e44;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .card-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .card-num {
+        width: 24px;
+        height: 24px;
+        background: var(--surface2);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        color: var(--muted);
+        flex-shrink: 0;
+      }
+      .card-title-text {
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .card-subtitle-text {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .card-actions {
+        display: flex;
+        gap: 6px;
+      }
+      .btn-icon {
+        width: 28px;
+        height: 28px;
+        background: none;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+      }
+      .btn-icon:hover {
+        border-color: var(--border);
+        color: var(--text);
+        background: var(--surface2);
+      }
+      .btn-icon.danger:hover {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+
+      .card-body {
+        padding: 0 16px 16px;
+        border-top: 1px solid var(--border);
+        margin-top: -1px;
+        display: none;
+      }
+      .card-body.open {
+        display: block;
+        padding-top: 16px;
+      }
+
+      /* ── Add button ── */
+      .btn-add {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: none;
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+        color: var(--muted);
+        font-size: 13px;
+        cursor: pointer;
+        width: 100%;
+        justify-content: center;
+        transition: all 0.15s;
+        margin-top: 12px;
+      }
+      .btn-add:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(232, 255, 71, 0.03);
+      }
+
+      /* ── Skills ── */
+      .skills-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .skill-tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        font-size: 13px;
+        transition: border-color 0.15s;
+      }
+      .skill-tag:hover {
+        border-color: #444;
+      }
+      .skill-tag .remove-skill {
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1;
+        transition: color 0.1s;
+      }
+      .skill-tag .remove-skill:hover {
+        color: var(--danger);
+      }
+
+      .skill-input-row {
+        display: flex;
+        gap: 8px;
+      }
+      .skill-input-row input {
+        flex: 1;
+      }
+      .btn-add-skill {
+        padding: 10px 16px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-size: 13px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.15s;
+      }
+      .btn-add-skill:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* ── File upload ── */
+      .upload-zone {
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        position: relative;
+      }
+      .upload-zone:hover {
+        border-color: var(--accent);
+        background: rgba(232, 255, 71, 0.02);
+      }
+      .upload-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+      }
+      .upload-zone .upload-icon {
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
+      .upload-zone .upload-text {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .upload-zone .upload-name {
+        font-size: 13px;
+        color: var(--accent);
+        margin-top: 6px;
+        font-family: "DM Mono", monospace;
+      }
+      .upload-preview {
+        width: 72px;
+        height: 72px;
+        border-radius: 12px;
+        object-fit: cover;
+        margin: 0 auto 8px;
+        display: block;
+        border: 1px solid var(--border);
+      }
+
+      /* ── Socials ── */
+      .social-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .social-row input:first-child {
+        width: 120px;
+        flex-shrink: 0;
+      }
+      .social-row input:last-child {
+        flex: 1;
+      }
+
+      /* ── Status / Toast ── */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px 18px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        opacity: 0;
+        transform: translateY(8px);
+        transition: all 0.2s;
+        z-index: 999;
+        max-width: 320px;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .toast.success {
+        border-color: #47ff8860;
+        color: #47ff88;
+      }
+      .toast.error {
+        border-color: #ff474760;
+        color: #ff8080;
+      }
+      .toast.info {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* ── Section divider ── */
+      .section-divider {
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 28px 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .section-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      /* ── Info box ── */
+      .info-box {
+        background: rgba(232, 255, 71, 0.04);
+        border: 1px solid rgba(232, 255, 71, 0.15);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+        font-size: 13px;
+        color: #b8cc3a;
+        margin-bottom: 24px;
+        line-height: 1.6;
+      }
+      .info-box strong {
+        color: var(--accent);
+      }
+
+      /* ── Scrollbar ── */
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div class="app">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-logo">CV<span>/</span>BUILDER</div>
 
-    <script type="module" src="/src/main.jsx"></script>
+        <nav>
+          <div
+            class="nav-item active"
+            onclick="showSection('profile')"
+            data-section="profile"
+          >
+            <span class="nav-icon">👤</span> Profile
+          </div>
+          <div
+            class="nav-item"
+            onclick="showSection('experience')"
+            data-section="experience"
+          >
+            <span class="nav-icon">💼</span> Experience
+          </div>
+          <div
+            class="nav-item"
+            onclick="showSection('education')"
+            data-section="education"
+          >
+            <span class="nav-icon">🎓</span> Education
+          </div>
+          <div
+            class="nav-item"
+            onclick="showSection('skills')"
+            data-section="skills"
+          >
+            <span class="nav-icon">⚡</span> Skills
+          </div>
+          <div
+            class="nav-item"
+            onclick="showSection('files')"
+            data-section="files"
+          >
+            <span class="nav-icon">📎</span> Files
+          </div>
+          <div class="nav-item" onclick="showSection('nav')" data-section="nav">
+            <span class="nav-icon">🔗</span> Navigation
+          </div>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <button class="btn-export" onclick="exportZip()" id="exportBtn">
+            ⬇ Download ZIP
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN -->
+      <main class="main">
+        <!-- ─── PROFILE ─── -->
+        <div class="section-page active" id="page-profile">
+          <div class="page-title">Profile</div>
+          <div class="page-subtitle">
+            Your main information displayed in the hero section.
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full name <span class="req">*</span></label>
+              <input
+                type="text"
+                id="p_name"
+                placeholder="John Doe"
+                oninput="saveState()"
+              />
+            </div>
+            <div class="form-group">
+              <label>Professional title</label>
+              <input
+                type="text"
+                id="p_title"
+                placeholder="Full-Stack Developer"
+                oninput="saveState()"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Browser tab title</label>
+              <input
+                type="text"
+                id="p_titleSite"
+                placeholder="John Doe — Developer"
+                oninput="saveState()"
+              />
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <input
+                type="text"
+                id="p_location"
+                placeholder="Bucharest, Romania"
+                oninput="saveState()"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              id="p_email"
+              placeholder="john@example.com"
+              oninput="saveState()"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Bio (2-3 sentences)</label>
+            <textarea
+              id="p_bio"
+              rows="3"
+              placeholder="Write a few lines about yourself..."
+              oninput="saveState()"
+            ></textarea>
+          </div>
+
+          <div class="section-divider">Social Links</div>
+
+          <div id="socials-list"></div>
+          <button class="btn-add" onclick="addSocial()">
+            + Add social link
+          </button>
+        </div>
+
+        <!-- ─── EXPERIENCE ─── -->
+        <div class="section-page" id="page-experience">
+          <div class="page-title">Experience</div>
+          <div class="page-subtitle">
+            Add, edit, or reorder your professional positions.
+          </div>
+
+          <div class="card-list" id="exp-list"></div>
+          <button class="btn-add" onclick="addItem('exp')">
+            + Add position
+          </button>
+        </div>
+
+        <!-- ─── EDUCATION ─── -->
+        <div class="section-page" id="page-education">
+          <div class="page-title">Education</div>
+          <div class="page-subtitle">Degrees, courses, certifications.</div>
+
+          <div class="card-list" id="edu-list"></div>
+          <button class="btn-add" onclick="addItem('edu')">
+            + Add education
+          </button>
+        </div>
+
+        <!-- ─── SKILLS ─── -->
+        <div class="section-page" id="page-skills">
+          <div class="page-title">Skills & Expertise</div>
+          <div class="page-subtitle">
+            Add or remove your skills. Press Enter or the + button.
+          </div>
+
+          <div class="skills-grid" id="skills-grid"></div>
+
+          <div class="skill-input-row">
+            <input
+              type="text"
+              id="skill-input"
+              placeholder="ex: React, TypeScript, Docker..."
+              onkeydown="
+                if (event.key === 'Enter') {
+                  addSkill();
+                  event.preventDefault();
+                }
+              "
+            />
+            <button class="btn-add-skill" onclick="addSkill()">+ Add</button>
+          </div>
+        </div>
+
+        <!-- ─── FILES ─── -->
+        <div class="section-page" id="page-files">
+          <div class="page-title">Files</div>
+          <div class="page-subtitle">
+            Profile image, favicon and downloadable CV.
+          </div>
+
+          <div class="info-box">
+            <strong>How it works:</strong> Files uploaded here will be included
+            directly in the generated ZIP. The CV will be accessible through the
+            "Download CV" button on the site.
+          </div>
+
+          <div class="section-divider">Profile image</div>
+          <div class="form-group">
+            <div
+              class="upload-zone"
+              id="zone-avatar"
+              onclick="document.getElementById('input-avatar').click()"
+            >
+              <input
+                type="file"
+                id="input-avatar"
+                accept="image/*"
+                style="display: none"
+                onchange="handleFile('avatar', this)"
+              />
+              <div class="upload-icon">🖼️</div>
+              <div class="upload-text">Image file (PNG, JPG, WebP)</div>
+              <div class="upload-text" style="font-size: 11px; margin-top: 4px">
+                Will be saved as
+                <code style="color: var(--accent)">Icon.png</code> in public/
+              </div>
+              <div
+                class="upload-name"
+                id="avatar-name"
+                style="display: none"
+              ></div>
+            </div>
+          </div>
+
+          <div class="section-divider">Favicon</div>
+          <div class="form-group">
+            <div
+              class="upload-zone"
+              id="zone-favicon"
+              onclick="document.getElementById('input-favicon').click()"
+            >
+              <input
+                type="file"
+                id="input-favicon"
+                accept="image/*,.ico"
+                style="display: none"
+                onchange="handleFile('favicon', this)"
+              />
+              <div class="upload-icon">🔖</div>
+              <div class="upload-text">Favicon (ICO, PNG)</div>
+              <div class="upload-text" style="font-size: 11px; margin-top: 4px">
+                Will be saved as
+                <code style="color: var(--accent)">favicon.ico</code>
+              </div>
+              <div
+                class="upload-name"
+                id="favicon-name"
+                style="display: none"
+              ></div>
+            </div>
+          </div>
+
+          <div class="section-divider">CV for download</div>
+          <div class="form-group">
+            <div
+              class="upload-zone"
+              id="zone-cv"
+              onclick="document.getElementById('input-cv').click()"
+            >
+              <input
+                type="file"
+                id="input-cv"
+                accept=".pdf"
+                style="display: none"
+                onchange="handleFile('cv', this)"
+              />
+              <div class="upload-icon">📄</div>
+              <div class="upload-text">PDF file</div>
+              <div class="upload-text" style="font-size: 11px; margin-top: 4px">
+                Will be saved as
+                <code style="color: var(--accent)">cv.pdf</code> — the "Download
+                CV" button will download it
+              </div>
+              <div class="upload-name" id="cv-name" style="display: none"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── NAVIGATION ─── -->
+        <div class="section-page" id="page-nav">
+          <div class="page-title">Navigation</div>
+          <div class="page-subtitle">Menu sections. Order and labels.</div>
+
+          <div class="card-list" id="nav-list"></div>
+          <button class="btn-add" onclick="addNavItem()">+ Add section</button>
+        </div>
+      </main>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+      // ══════════════════════════════════════════════════════
+      //  STATE
+      // ══════════════════════════════════════════════════════
+      let state = {
+        profile: {
+          name: "",
+          title: "",
+          titleSite: "",
+          location: "",
+          bio: "",
+          email: "",
+          socials: [
+            { label: "LinkedIn", href: "" },
+            { label: "GitHub", href: "" },
+          ],
+        },
+        experience: [{ role: "", company: "", period: "", desc: "" }],
+        education: [{ degree: "", school: "", period: "", desc: "" }],
+        skills: ["JavaScript", "React", "Node.js"],
+        navLinks: [
+          { label: "About", id: "about" },
+          { label: "Experience", id: "experience" },
+          { label: "Education", id: "education" },
+          { label: "Skills", id: "skills" },
+          { label: "Contact", id: "contact" },
+        ],
+      };
+
+      let files = { avatar: null, favicon: null, cv: null };
+
+      // ══════════════════════════════════════════════════════
+      //  NAV
+      // ══════════════════════════════════════════════════════
+      function showSection(name) {
+        document
+          .querySelectorAll(".section-page")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-item")
+          .forEach((n) => n.classList.remove("active"));
+        document.getElementById("page-" + name).classList.add("active");
+        document
+          .querySelector(`[data-section="${name}"]`)
+          .classList.add("active");
+      }
+
+      // ══════════════════════════════════════════════════════
+      //  PROFILE
+      // ══════════════════════════════════════════════════════
+      function saveState() {
+        state.profile.name = val("p_name");
+        state.profile.title = val("p_title");
+        state.profile.titleSite = val("p_titleSite");
+        state.profile.location = val("p_location");
+        state.profile.email = val("p_email");
+        state.profile.bio = val("p_bio");
+      }
+
+      function val(id) {
+        const el = document.getElementById(id);
+        return el ? el.value : "";
+      }
+
+      function renderSocials() {
+        const list = document.getElementById("socials-list");
+        list.innerHTML = "";
+        state.profile.socials.forEach((s, i) => {
+          const row = document.createElement("div");
+          row.className = "social-row";
+          row.innerHTML = `
+      <input type="text" placeholder="Label" value="${esc(s.label)}"
+        oninput="state.profile.socials[${i}].label=this.value">
+      <input type="text" placeholder="https://..." value="${esc(s.href)}"
+        oninput="state.profile.socials[${i}].href=this.value">
+      <button class="btn-icon danger" onclick="removeSocial(${i})" title="Delete">✕</button>
+    `;
+          list.appendChild(row);
+        });
+      }
+
+      function addSocial() {
+        state.profile.socials.push({ label: "", href: "" });
+        renderSocials();
+      }
+
+      function removeSocial(i) {
+        state.profile.socials.splice(i, 1);
+        renderSocials();
+      }
+
+      // ══════════════════════════════════════════════════════
+      //  EXPERIENCE / EDUCATION  (generic)
+      // ══════════════════════════════════════════════════════
+      const listConfig = {
+        exp: {
+          stateKey: "experience",
+          listId: "exp-list",
+          fields: [
+            {
+              key: "role",
+              label: "Role title",
+              placeholder: "Frontend Developer",
+              cols: 2,
+            },
+            {
+              key: "company",
+              label: "Company / Institution",
+              placeholder: "Acme Corp",
+              cols: 1,
+            },
+            {
+              key: "period",
+              label: "Period",
+              placeholder: "2022 — present",
+              cols: 1,
+            },
+            {
+              key: "desc",
+              label: "Description",
+              placeholder: "What you did, what you delivered...",
+              textarea: true,
+            },
+          ],
+          titleFn: (item) => item.role || "New position",
+          subFn: (item) => item.company || "",
+        },
+        edu: {
+          stateKey: "education",
+          listId: "edu-list",
+          fields: [
+            {
+              key: "degree",
+              label: "Degree / Course",
+              placeholder: "Bachelor’s in Computer Science",
+              cols: 2,
+            },
+            {
+              key: "school",
+              label: "University / Institution",
+              placeholder: "Politehnica University",
+              cols: 1,
+            },
+            {
+              key: "period",
+              label: "Period",
+              placeholder: "2018 — 2022",
+              cols: 1,
+            },
+            {
+              key: "desc",
+              label: "Details",
+              placeholder: "Specialization, thesis project...",
+              textarea: true,
+            },
+          ],
+          titleFn: (item) => item.degree || "New education",
+          subFn: (item) => item.school || "",
+        },
+      };
+
+      function renderList(type) {
+        const cfg = listConfig[type];
+        const items = state[cfg.stateKey];
+        const container = document.getElementById(cfg.listId);
+        container.innerHTML = "";
+
+        items.forEach((item, i) => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.id = `${type}-card-${i}`;
+
+          // Header
+          const header = document.createElement("div");
+          header.className = "card-header";
+          header.innerHTML = `
+      <div class="card-header-left" onclick="toggleCard('${type}-card-${i}')">
+        <div class="card-num">${i + 1}</div>
+        <div>
+          <div class="card-title-text">${esc(cfg.titleFn(item))}</div>
+          ${cfg.subFn(item) ? `<div class="card-subtitle-text">${esc(cfg.subFn(item))}</div>` : ""}
+        </div>
+      </div>
+      <div class="card-actions">
+        ${i > 0 ? `<button class="btn-icon" onclick="moveItem('${type}',${i},-1)" title="Up">↑</button>` : ""}
+        ${i < items.length - 1 ? `<button class="btn-icon" onclick="moveItem('${type}',${i},1)" title="Down">↓</button>` : ""}
+        <button class="btn-icon danger" onclick="removeItem('${type}',${i})" title="Delete">✕</button>
+      </div>
+    `;
+          card.appendChild(header);
+
+          // Body
+          const body = document.createElement("div");
+          body.className = "card-body" + (i === 0 ? " open" : "");
+          body.id = `${type}-body-${i}`;
+
+          // Build fields
+          const twoCol = cfg.fields.filter((f) => !f.textarea && f.cols !== 2);
+          let html = "";
+          let pendingHalf = null;
+          cfg.fields.forEach((f) => {
+            if (f.textarea) {
+              if (pendingHalf) {
+                html += `</div>`;
+                pendingHalf = null;
+              }
+              html += `<div class="form-group"><label>${f.label}</label>
+          <textarea placeholder="${f.placeholder}" oninput="state['${cfg.stateKey}'][${i}]['${f.key}']=this.value;refreshCardHeader('${type}',${i})">${esc(item[f.key] || "")}</textarea>
+        </div>`;
+            } else if (f.cols === 2) {
+              if (pendingHalf) {
+                html += `</div>`;
+                pendingHalf = null;
+              }
+              html += `<div class="form-group"><label>${f.label}</label>
+          <input type="text" placeholder="${f.placeholder}" value="${esc(item[f.key] || "")}"
+            oninput="state['${cfg.stateKey}'][${i}]['${f.key}']=this.value;refreshCardHeader('${type}',${i})">
+        </div>`;
+            } else {
+              if (!pendingHalf) {
+                html += `<div class="form-row">`;
+                pendingHalf = f;
+              } else {
+                pendingHalf = null;
+              }
+              html += `<div class="form-group"><label>${f.label}</label>
+          <input type="text" placeholder="${f.placeholder}" value="${esc(item[f.key] || "")}"
+            oninput="state['${cfg.stateKey}'][${i}]['${f.key}']=this.value;refreshCardHeader('${type}',${i})">
+        </div>`;
+              if (!pendingHalf) html += `</div>`;
+            }
+          });
+          if (pendingHalf) html += `</div>`;
+
+          body.innerHTML = html;
+          card.appendChild(body);
+          container.appendChild(card);
+        });
+      }
+
+      function toggleCard(cardId) {
+        const bodyId = cardId.replace("-card-", "-body-");
+        const body = document.getElementById(bodyId);
+        if (body) body.classList.toggle("open");
+      }
+
+      function refreshCardHeader(type, i) {
+        renderList(type); // simple re-render
+      }
+
+      function addItem(type) {
+        const cfg = listConfig[type];
+        const newItem = {};
+        cfg.fields.forEach((f) => (newItem[f.key] = ""));
+        state[cfg.stateKey].push(newItem);
+        renderList(type);
+        // Open last card
+        setTimeout(() => {
+          const last = state[cfg.stateKey].length - 1;
+          const body = document.getElementById(`${type}-body-${last}`);
+          if (body) body.classList.add("open");
+        }, 50);
+      }
+
+      function removeItem(type, i) {
+        const cfg = listConfig[type];
+        if (state[cfg.stateKey].length <= 1) {
+          showToast("You must have at least one item.", "error");
+          return;
+        }
+        state[cfg.stateKey].splice(i, 1);
+        renderList(type);
+      }
+
+      function moveItem(type, i, dir) {
+        const cfg = listConfig[type];
+        const arr = state[cfg.stateKey];
+        const j = i + dir;
+        if (j < 0 || j >= arr.length) return;
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        renderList(type);
+      }
+
+      // ══════════════════════════════════════════════════════
+      //  SKILLS
+      // ══════════════════════════════════════════════════════
+      function renderSkills() {
+        const grid = document.getElementById("skills-grid");
+        grid.innerHTML = "";
+        state.skills.forEach((s, i) => {
+          const tag = document.createElement("div");
+          tag.className = "skill-tag";
+          tag.innerHTML = `<span>${esc(s)}</span><span class="remove-skill" onclick="removeSkill(${i})">×</span>`;
+          grid.appendChild(tag);
+        });
+      }
+
+      function addSkill() {
+        const input = document.getElementById("skill-input");
+        const v = input.value.trim();
+        if (!v) return;
+        if (state.skills.includes(v)) {
+          showToast("Skill already exists.", "error");
+          return;
+        }
+        state.skills.push(v);
+        input.value = "";
+        renderSkills();
+      }
+
+      function removeSkill(i) {
+        state.skills.splice(i, 1);
+        renderSkills();
+      }
+
+      // ══════════════════════════════════════════════════════
+      //  NAV LINKS
+      // ══════════════════════════════════════════════════════
+      function renderNavLinks() {
+        const container = document.getElementById("nav-list");
+        container.innerHTML = "";
+        state.navLinks.forEach((n, i) => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-num">${i + 1}</div>
+          <div class="card-title-text">${esc(n.label)} <span style="color:var(--muted);font-size:12px">#${esc(n.id)}</span></div>
+        </div>
+        <div class="card-actions">
+          ${i > 0 ? `<button class="btn-icon" onclick="moveNav(${i},-1)">↑</button>` : ""}
+          ${i < state.navLinks.length - 1 ? `<button class="btn-icon" onclick="moveNav(${i},1)">↓</button>` : ""}
+          <button class="btn-icon danger" onclick="removeNav(${i})">✕</button>
+        </div>
+      </div>
+      <div class="card-body open">
+        <div class="form-row">
+          <div class="form-group"><label>Label (menu text)</label>
+            <input type="text" value="${esc(n.label)}" oninput="state.navLinks[${i}].label=this.value;renderNavLinks()">
+          </div>
+          <div class="form-group"><label>Section ID (anchor)</label>
+            <input type="text" value="${esc(n.id)}" oninput="state.navLinks[${i}].id=this.value;renderNavLinks()">
+          </div>
+        </div>
+      </div>
+    `;
+          container.appendChild(card);
+        });
+      }
+
+      function addNavItem() {
+        state.navLinks.push({ label: "", id: "" });
+        renderNavLinks();
+      }
+      function removeNav(i) {
+        if (state.navLinks.length <= 1) return;
+        state.navLinks.splice(i, 1);
+        renderNavLinks();
+      }
+      function moveNav(i, dir) {
+        const j = i + dir;
+        if (j < 0 || j >= state.navLinks.length) return;
+        [state.navLinks[i], state.navLinks[j]] = [
+          state.navLinks[j],
+          state.navLinks[i],
+        ];
+        renderNavLinks();
+      }
+
+      // ══════════════════════════════════════════════════════
+      //  FILE UPLOADS
+      // ══════════════════════════════════════════════════════
+      function handleFile(type, input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          files[type] = {
+            name: file.name,
+            data: e.target.result,
+            type: file.type,
+          };
+          const nameEl = document.getElementById(`${type}-name`);
+          if (nameEl) {
+            nameEl.textContent = "✓ " + file.name;
+            nameEl.style.display = "block";
+          }
+          showToast(`${file.name} uploaded!`, "success");
+        };
+        reader.readAsArrayBuffer(file);
+      }
+
+      // ══════════════════════════════════════════════════════
+      //  GENERATE data.js STRING
+      // ══════════════════════════════════════════════════════
+      function buildDataJs() {
+        const p = state.profile;
+        const initials =
+          p.name
+            .split(" ")
+            .map((n) => n[0])
+            .slice(0, 2)
+            .join("")
+            .toUpperCase() || "CV";
+
+        return `// Generated by CV Builder
+window.cvData = {
+  profile: {
+    name: ${JSON.stringify(p.name || "Your Name")},
+    initials: ${JSON.stringify(initials)},
+    title: ${JSON.stringify(p.title || "")},
+    titleSite: ${JSON.stringify(p.titleSite || p.name || "CV")},
+    location: ${JSON.stringify(p.location || "")},
+    bio: ${JSON.stringify(p.bio || "")},
+    email: ${JSON.stringify(p.email || "")},
+    cvFile: "/cv.pdf",
+    socials: ${JSON.stringify(
+      state.profile.socials.filter((s) => s.href),
+      null,
+      2,
+    )}
+  },
+  experience: ${JSON.stringify(state.experience, null, 2)},
+  education: ${JSON.stringify(state.education, null, 2)},
+  skills: ${JSON.stringify(state.skills)},
+  navLinks: ${JSON.stringify(state.navLinks, null, 2)}
+};
+`;
+      }
+
+      // ══════════════════════════════════════════════════════
+      //  BUILT DIST FILES (embedded as base64 or fetched)
+      //  We embed a minimal dist structure. The user's built
+      //  dist files are fetched from the same origin or the
+      //  builder stores them. Since we can't bundle a real
+      //  dist here, we generate a self-contained HTML approach
+      //  that loads data.js dynamically.
+      // ══════════════════════════════════════════════════════
+
+      async function exportZip() {
+        const btn = document.getElementById("exportBtn");
+        btn.disabled = true;
+        btn.textContent = "⏳ Generating...";
+
+        try {
+          const zip = new JSZip();
+
+          // Fetch template.html and save it in ZIP as index.html
+          const templateHtml = await fetch("template.html").then((r) => {
+            if (!r.ok) throw new Error("Could not fetch template.html");
+            return r.text();
+          });
+
+          // Optional: make asset paths relative inside the ZIP
+          const finalHtml = templateHtml
+            .replaceAll("/assets/", "assets/")
+            .replaceAll("/data.js", "data.js");
+
+          zip.file("index.html", finalHtml);
+
+          // data.js
+          const dataJs = buildDataJs();
+          zip.file("data.js", dataJs);
+
+          // assets/
+          const assetsFolder = zip.folder("assets");
+
+          const [cssText, jsText] = await Promise.all([
+            fetch("assets/index-B_1wDDE5.css").then((r) => {
+              if (!r.ok) throw new Error("Could not fetch CSS file");
+              return r.text();
+            }),
+            fetch("assets/index-g_ni_SwE.js").then((r) => {
+              if (!r.ok) throw new Error("Could not fetch JS file");
+              return r.text();
+            }),
+          ]);
+
+          assetsFolder.file("index-B_1wDDE5.css", cssText);
+          assetsFolder.file("index-g_ni_SwE.js", jsText);
+
+          // Optional uploaded files
+          if (files.avatar && files.avatar.data) {
+            zip.file("Icon.png", files.avatar.data);
+          }
+          if (files.favicon && files.favicon.data) {
+            zip.file("favicon.ico", files.favicon.data);
+          }
+          if (files.cv && files.cv.data) {
+            zip.file("cv.pdf", files.cv.data);
+          }
+
+          // README
+          const readme = `# CV Site - Generated Files
+
+## What this ZIP contains:
+- \`index.html\` — main page
+- \`data.js\` — your data
+- \`assets/index-B_1wDDE5.css\` — CSS file
+- \`assets/index-g_ni_SwE.js\` — JS file
+- \`Icon.png\` — profile image (if uploaded)
+- \`favicon.ico\` — favicon (if uploaded)
+- \`cv.pdf\` — your CV (if uploaded)
+
+Generated by CV Builder
+`;
+          zip.file("README.txt", readme);
+
+          const blob = await zip.generateAsync({
+            type: "blob",
+            compression: "DEFLATE",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "cv-data.zip";
+          a.click();
+          URL.revokeObjectURL(url);
+
+          showToast("ZIP downloaded successfully! 🎉", "success");
+        } catch (err) {
+          showToast("Error: " + err.message, "error");
+          console.error(err);
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = "⬇ Download ZIP";
+      }
+      // ══════════════════════════════════════════════════════
+      //  TOAST
+      // ══════════════════════════════════════════════════════
+      let toastTimer;
+      function showToast(msg, type = "info") {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.className = `toast show ${type}`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
+      }
+
+      // ══════════════════════════════════════════════════════
+      //  UTILS
+      // ══════════════════════════════════════════════════════
+      function esc(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      // ══════════════════════════════════════════════════════
+      //  INIT
+      // ══════════════════════════════════════════════════════
+      function init() {
+        // Bind profile fields
+        document.getElementById("p_name").value = state.profile.name;
+        document.getElementById("p_title").value = state.profile.title;
+        document.getElementById("p_titleSite").value = state.profile.titleSite;
+        document.getElementById("p_location").value = state.profile.location;
+        document.getElementById("p_email").value = state.profile.email;
+        document.getElementById("p_bio").value = state.profile.bio;
+
+        renderSocials();
+        renderList("exp");
+        renderList("edu");
+        renderSkills();
+        renderNavLinks();
+      }
+
+      init();
+    </script>
   </body>
 </html>
