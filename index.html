@@ -37,7 +37,6 @@
         line-height: 1.6;
       }
 
-      /* ── Layout ── */
       .app {
         display: flex;
         min-height: 100vh;
@@ -135,7 +134,6 @@
         transform: none;
       }
 
-      /* ── Main content ── */
       .main {
         flex: 1;
         overflow-y: auto;
@@ -163,7 +161,6 @@
         margin-bottom: 32px;
       }
 
-      /* ── Form elements ── */
       .form-group {
         margin-bottom: 20px;
       }
@@ -215,7 +212,6 @@
         gap: 16px;
       }
 
-      /* ── Cards (for list items) ── */
       .card-list {
         display: flex;
         flex-direction: column;
@@ -307,7 +303,6 @@
         padding-top: 16px;
       }
 
-      /* ── Add button ── */
       .btn-add {
         display: flex;
         align-items: center;
@@ -330,7 +325,6 @@
         background: rgba(232, 255, 71, 0.03);
       }
 
-      /* ── Skills ── */
       .skills-grid {
         display: flex;
         flex-wrap: wrap;
@@ -385,7 +379,6 @@
         color: var(--accent);
       }
 
-      /* ── File upload ── */
       .upload-zone {
         border: 1px dashed var(--border);
         border-radius: var(--radius);
@@ -431,7 +424,6 @@
         border: 1px solid var(--border);
       }
 
-      /* ── Socials ── */
       .social-row {
         display: flex;
         gap: 8px;
@@ -446,7 +438,6 @@
         flex: 1;
       }
 
-      /* ── Status / Toast ── */
       .toast {
         position: fixed;
         bottom: 24px;
@@ -482,7 +473,6 @@
         color: var(--accent);
       }
 
-      /* ── Section divider ── */
       .section-divider {
         font-family: "DM Mono", monospace;
         font-size: 11px;
@@ -501,7 +491,6 @@
         background: var(--border);
       }
 
-      /* ── Info box ── */
       .info-box {
         background: rgba(232, 255, 71, 0.04);
         border: 1px solid rgba(232, 255, 71, 0.15);
@@ -516,7 +505,6 @@
         color: var(--accent);
       }
 
-      /* ── Scrollbar ── */
       ::-webkit-scrollbar {
         width: 4px;
       }
@@ -531,7 +519,6 @@
   </head>
   <body>
     <div class="app">
-      <!-- SIDEBAR -->
       <aside class="sidebar">
         <div class="sidebar-logo">CV<span>/</span>BUILDER</div>
 
@@ -583,9 +570,7 @@
         </div>
       </aside>
 
-      <!-- MAIN -->
       <main class="main">
-        <!-- ─── PROFILE ─── -->
         <div class="section-page active" id="page-profile">
           <div class="page-title">Profile</div>
           <div class="page-subtitle">
@@ -655,14 +640,12 @@
           </div>
 
           <div class="section-divider">Social Links</div>
-
           <div id="socials-list"></div>
           <button class="btn-add" onclick="addSocial()">
             + Add social link
           </button>
         </div>
 
-        <!-- ─── EXPERIENCE ─── -->
         <div class="section-page" id="page-experience">
           <div class="page-title">Experience</div>
           <div class="page-subtitle">
@@ -675,7 +658,6 @@
           </button>
         </div>
 
-        <!-- ─── EDUCATION ─── -->
         <div class="section-page" id="page-education">
           <div class="page-title">Education</div>
           <div class="page-subtitle">Degrees, courses, certifications.</div>
@@ -686,7 +668,6 @@
           </button>
         </div>
 
-        <!-- ─── SKILLS ─── -->
         <div class="section-page" id="page-skills">
           <div class="page-title">Skills & Expertise</div>
           <div class="page-subtitle">
@@ -711,7 +692,6 @@
           </div>
         </div>
 
-        <!-- ─── FILES ─── -->
         <div class="section-page" id="page-files">
           <div class="page-title">Files</div>
           <div class="page-subtitle">
@@ -806,7 +786,6 @@
           </div>
         </div>
 
-        <!-- ─── NAVIGATION ─── -->
         <div class="section-page" id="page-nav">
           <div class="page-title">Navigation</div>
           <div class="page-subtitle">Menu sections. Order and labels.</div>
@@ -817,13 +796,9 @@
       </main>
     </div>
 
-    <!-- TOAST -->
     <div class="toast" id="toast"></div>
 
     <script>
-      // ══════════════════════════════════════════════════════
-      //  STATE
-      // ══════════════════════════════════════════════════════
       let state = {
         profile: {
           name: "",
@@ -850,10 +825,8 @@
       };
 
       let files = { avatar: null, favicon: null, cv: null };
+      let toastTimer;
 
-      // ══════════════════════════════════════════════════════
-      //  NAV
-      // ══════════════════════════════════════════════════════
       function showSection(name) {
         document
           .querySelectorAll(".section-page")
@@ -867,9 +840,11 @@
           .classList.add("active");
       }
 
-      // ══════════════════════════════════════════════════════
-      //  PROFILE
-      // ══════════════════════════════════════════════════════
+      function val(id) {
+        const el = document.getElementById(id);
+        return el ? el.value : "";
+      }
+
       function saveState() {
         state.profile.name = val("p_name");
         state.profile.title = val("p_title");
@@ -879,9 +854,20 @@
         state.profile.bio = val("p_bio");
       }
 
-      function val(id) {
-        const el = document.getElementById(id);
-        return el ? el.value : "";
+      function esc(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function showToast(msg, type = "info") {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.className = `toast show ${type}`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
       }
 
       function renderSocials() {
@@ -891,12 +877,12 @@
           const row = document.createElement("div");
           row.className = "social-row";
           row.innerHTML = `
-      <input type="text" placeholder="Label" value="${esc(s.label)}"
-        oninput="state.profile.socials[${i}].label=this.value">
-      <input type="text" placeholder="https://..." value="${esc(s.href)}"
-        oninput="state.profile.socials[${i}].href=this.value">
-      <button class="btn-icon danger" onclick="removeSocial(${i})" title="Delete">✕</button>
-    `;
+            <input type="text" placeholder="Label" value="${esc(s.label)}"
+              oninput="state.profile.socials[${i}].label=this.value">
+            <input type="text" placeholder="https://..." value="${esc(s.href)}"
+              oninput="state.profile.socials[${i}].href=this.value">
+            <button class="btn-icon danger" onclick="removeSocial(${i})" title="Delete">✕</button>
+          `;
           list.appendChild(row);
         });
       }
@@ -911,9 +897,6 @@
         renderSocials();
       }
 
-      // ══════════════════════════════════════════════════════
-      //  EXPERIENCE / EDUCATION  (generic)
-      // ══════════════════════════════════════════════════════
       const listConfig = {
         exp: {
           stateKey: "experience",
@@ -981,6 +964,20 @@
         },
       };
 
+      function updateCardHeader(type, i) {
+        const cfg = listConfig[type];
+        const item = state[cfg.stateKey][i];
+        const titleEl = document.getElementById(`${type}-title-${i}`);
+        const subEl = document.getElementById(`${type}-sub-${i}`);
+
+        if (titleEl) titleEl.textContent = cfg.titleFn(item);
+        if (subEl) {
+          const sub = cfg.subFn(item);
+          subEl.textContent = sub;
+          subEl.style.display = sub ? "block" : "none";
+        }
+      }
+
       function renderList(type) {
         const cfg = listConfig[type];
         const items = state[cfg.stateKey];
@@ -992,68 +989,66 @@
           card.className = "card";
           card.id = `${type}-card-${i}`;
 
-          // Header
           const header = document.createElement("div");
           header.className = "card-header";
           header.innerHTML = `
-      <div class="card-header-left" onclick="toggleCard('${type}-card-${i}')">
-        <div class="card-num">${i + 1}</div>
-        <div>
-          <div class="card-title-text">${esc(cfg.titleFn(item))}</div>
-          ${cfg.subFn(item) ? `<div class="card-subtitle-text">${esc(cfg.subFn(item))}</div>` : ""}
-        </div>
-      </div>
-      <div class="card-actions">
-        ${i > 0 ? `<button class="btn-icon" onclick="moveItem('${type}',${i},-1)" title="Up">↑</button>` : ""}
-        ${i < items.length - 1 ? `<button class="btn-icon" onclick="moveItem('${type}',${i},1)" title="Down">↓</button>` : ""}
-        <button class="btn-icon danger" onclick="removeItem('${type}',${i})" title="Delete">✕</button>
-      </div>
-    `;
+            <div class="card-header-left" onclick="toggleCard('${type}-card-${i}')">
+              <div class="card-num">${i + 1}</div>
+              <div>
+                <div class="card-title-text" id="${type}-title-${i}">${esc(cfg.titleFn(item))}</div>
+                <div class="card-subtitle-text" id="${type}-sub-${i}" style="${cfg.subFn(item) ? "" : "display:none"}">${esc(cfg.subFn(item))}</div>
+              </div>
+            </div>
+            <div class="card-actions">
+              ${i > 0 ? `<button class="btn-icon" onclick="moveItem('${type}',${i},-1)" title="Up">↑</button>` : ""}
+              ${i < items.length - 1 ? `<button class="btn-icon" onclick="moveItem('${type}',${i},1)" title="Down">↓</button>` : ""}
+              <button class="btn-icon danger" onclick="removeItem('${type}',${i})" title="Delete">✕</button>
+            </div>
+          `;
           card.appendChild(header);
 
-          // Body
           const body = document.createElement("div");
           body.className = "card-body" + (i === 0 ? " open" : "");
           body.id = `${type}-body-${i}`;
 
-          // Build fields
-          const twoCol = cfg.fields.filter((f) => !f.textarea && f.cols !== 2);
           let html = "";
-          let pendingHalf = null;
+          let rowOpen = false;
+
           cfg.fields.forEach((f) => {
             if (f.textarea) {
-              if (pendingHalf) {
+              if (rowOpen) {
                 html += `</div>`;
-                pendingHalf = null;
+                rowOpen = false;
               }
               html += `<div class="form-group"><label>${f.label}</label>
-          <textarea placeholder="${f.placeholder}" oninput="state['${cfg.stateKey}'][${i}]['${f.key}']=this.value;refreshCardHeader('${type}',${i})">${esc(item[f.key] || "")}</textarea>
-        </div>`;
-            } else if (f.cols === 2) {
-              if (pendingHalf) {
-                html += `</div>`;
-                pendingHalf = null;
-              }
-              html += `<div class="form-group"><label>${f.label}</label>
-          <input type="text" placeholder="${f.placeholder}" value="${esc(item[f.key] || "")}"
-            oninput="state['${cfg.stateKey}'][${i}]['${f.key}']=this.value;refreshCardHeader('${type}',${i})">
-        </div>`;
-            } else {
-              if (!pendingHalf) {
-                html += `<div class="form-row">`;
-                pendingHalf = f;
-              } else {
-                pendingHalf = null;
-              }
-              html += `<div class="form-group"><label>${f.label}</label>
-          <input type="text" placeholder="${f.placeholder}" value="${esc(item[f.key] || "")}"
-            oninput="state['${cfg.stateKey}'][${i}]['${f.key}']=this.value;refreshCardHeader('${type}',${i})">
-        </div>`;
-              if (!pendingHalf) html += `</div>`;
+                <textarea placeholder="${f.placeholder}" oninput="state['${cfg.stateKey}'][${i}]['${f.key}']=this.value;updateCardHeader('${type}',${i})">${esc(item[f.key] || "")}</textarea>
+              </div>`;
+              return;
             }
-          });
-          if (pendingHalf) html += `</div>`;
 
+            if (f.cols === 2) {
+              if (rowOpen) {
+                html += `</div>`;
+                rowOpen = false;
+              }
+              html += `<div class="form-group"><label>${f.label}</label>
+                <input type="text" placeholder="${f.placeholder}" value="${esc(item[f.key] || "")}" 
+                  oninput="state['${cfg.stateKey}'][${i}]['${f.key}']=this.value;updateCardHeader('${type}',${i})">
+              </div>`;
+              return;
+            }
+
+            if (!rowOpen) {
+              html += `<div class="form-row">`;
+              rowOpen = true;
+            }
+            html += `<div class="form-group"><label>${f.label}</label>
+              <input type="text" placeholder="${f.placeholder}" value="${esc(item[f.key] || "")}" 
+                oninput="state['${cfg.stateKey}'][${i}]['${f.key}']=this.value;updateCardHeader('${type}',${i})">
+            </div>`;
+          });
+
+          if (rowOpen) html += `</div>`;
           body.innerHTML = html;
           card.appendChild(body);
           container.appendChild(card);
@@ -1066,17 +1061,12 @@
         if (body) body.classList.toggle("open");
       }
 
-      function refreshCardHeader(type, i) {
-        renderList(type); // simple re-render
-      }
-
       function addItem(type) {
         const cfg = listConfig[type];
         const newItem = {};
         cfg.fields.forEach((f) => (newItem[f.key] = ""));
         state[cfg.stateKey].push(newItem);
         renderList(type);
-        // Open last card
         setTimeout(() => {
           const last = state[cfg.stateKey].length - 1;
           const body = document.getElementById(`${type}-body-${last}`);
@@ -1103,9 +1093,6 @@
         renderList(type);
       }
 
-      // ══════════════════════════════════════════════════════
-      //  SKILLS
-      // ══════════════════════════════════════════════════════
       function renderSkills() {
         const grid = document.getElementById("skills-grid");
         grid.innerHTML = "";
@@ -1135,9 +1122,6 @@
         renderSkills();
       }
 
-      // ══════════════════════════════════════════════════════
-      //  NAV LINKS
-      // ══════════════════════════════════════════════════════
       function renderNavLinks() {
         const container = document.getElementById("nav-list");
         container.innerHTML = "";
@@ -1145,30 +1129,40 @@
           const card = document.createElement("div");
           card.className = "card";
           card.innerHTML = `
-      <div class="card-header">
-        <div class="card-header-left">
-          <div class="card-num">${i + 1}</div>
-          <div class="card-title-text">${esc(n.label)} <span style="color:var(--muted);font-size:12px">#${esc(n.id)}</span></div>
-        </div>
-        <div class="card-actions">
-          ${i > 0 ? `<button class="btn-icon" onclick="moveNav(${i},-1)">↑</button>` : ""}
-          ${i < state.navLinks.length - 1 ? `<button class="btn-icon" onclick="moveNav(${i},1)">↓</button>` : ""}
-          <button class="btn-icon danger" onclick="removeNav(${i})">✕</button>
-        </div>
-      </div>
-      <div class="card-body open">
-        <div class="form-row">
-          <div class="form-group"><label>Label (menu text)</label>
-            <input type="text" value="${esc(n.label)}" oninput="state.navLinks[${i}].label=this.value;renderNavLinks()">
-          </div>
-          <div class="form-group"><label>Section ID (anchor)</label>
-            <input type="text" value="${esc(n.id)}" oninput="state.navLinks[${i}].id=this.value;renderNavLinks()">
-          </div>
-        </div>
-      </div>
-    `;
+            <div class="card-header">
+              <div class="card-header-left">
+                <div class="card-num">${i + 1}</div>
+                <div class="card-title-text">${esc(n.label)} <span style="color:var(--muted);font-size:12px">#${esc(n.id)}</span></div>
+              </div>
+              <div class="card-actions">
+                ${i > 0 ? `<button class="btn-icon" onclick="moveNav(${i},-1)">↑</button>` : ""}
+                ${i < state.navLinks.length - 1 ? `<button class="btn-icon" onclick="moveNav(${i},1)">↓</button>` : ""}
+                <button class="btn-icon danger" onclick="removeNav(${i})">✕</button>
+              </div>
+            </div>
+            <div class="card-body open">
+              <div class="form-row">
+                <div class="form-group"><label>Label (menu text)</label>
+                  <input type="text" value="${esc(n.label)}" oninput="state.navLinks[${i}].label=this.value;updateNavHeader(${i})">
+                </div>
+                <div class="form-group"><label>Section ID (anchor)</label>
+                  <input type="text" value="${esc(n.id)}" oninput="state.navLinks[${i}].id=this.value;updateNavHeader(${i})">
+                </div>
+              </div>
+            </div>
+          `;
           container.appendChild(card);
         });
+      }
+
+      function updateNavHeader(i) {
+        const n = state.navLinks[i];
+        const titleEl = document.querySelector(
+          `#nav-list .card:nth-child(${i + 1}) .card-title-text`,
+        );
+        if (titleEl) {
+          titleEl.innerHTML = `${esc(n.label)} <span style="color:var(--muted);font-size:12px">#${esc(n.id)}</span>`;
+        }
       }
 
       function addNavItem() {
@@ -1190,9 +1184,6 @@
         renderNavLinks();
       }
 
-      // ══════════════════════════════════════════════════════
-      //  FILE UPLOADS
-      // ══════════════════════════════════════════════════════
       function handleFile(type, input) {
         const file = input.files[0];
         if (!file) return;
@@ -1213,9 +1204,6 @@
         reader.readAsArrayBuffer(file);
       }
 
-      // ══════════════════════════════════════════════════════
-      //  GENERATE data.js STRING
-      // ══════════════════════════════════════════════════════
       function buildDataJs() {
         const p = state.profile;
         const initials =
@@ -1251,15 +1239,6 @@ window.cvData = {
 `;
       }
 
-      // ══════════════════════════════════════════════════════
-      //  BUILT DIST FILES (embedded as base64 or fetched)
-      //  We embed a minimal dist structure. The user's built
-      //  dist files are fetched from the same origin or the
-      //  builder stores them. Since we can't bundle a real
-      //  dist here, we generate a self-contained HTML approach
-      //  that loads data.js dynamically.
-      // ══════════════════════════════════════════════════════
-
       async function exportZip() {
         const btn = document.getElementById("exportBtn");
         btn.disabled = true;
@@ -1268,26 +1247,18 @@ window.cvData = {
         try {
           const zip = new JSZip();
 
-          // Fetch template.html and save it in ZIP as index.html
           const templateHtml = await fetch("template.html").then((r) => {
             if (!r.ok) throw new Error("Could not fetch template.html");
             return r.text();
           });
 
-          // Optional: make asset paths relative inside the ZIP
           const finalHtml = templateHtml
-            .replaceAll("/assets/", "/assets/")
-            .replaceAll("/data.js", "/data.js");
-
+            .replaceAll("/assets/", "assets/")
+            .replaceAll("/data.js", "data.js");
           zip.file("index.html", finalHtml);
+          zip.file("data.js", buildDataJs());
 
-          // data.js
-          const dataJs = buildDataJs();
-          zip.file("data.js", dataJs);
-
-          // assets/
           const assetsFolder = zip.folder("assets");
-
           const [cssText, jsText] = await Promise.all([
             fetch("assets/index-B_1wDDE5.css").then((r) => {
               if (!r.ok) throw new Error("Could not fetch CSS file");
@@ -1302,19 +1273,15 @@ window.cvData = {
           assetsFolder.file("index-B_1wDDE5.css", cssText);
           assetsFolder.file("index-g_ni_SwE.js", jsText);
 
-          // Optional uploaded files
-          if (files.avatar && files.avatar.data) {
+          if (files.avatar && files.avatar.data)
             zip.file("Icon.png", files.avatar.data);
-          }
-          if (files.favicon && files.favicon.data) {
+          if (files.favicon && files.favicon.data)
             zip.file("favicon.ico", files.favicon.data);
-          }
-          if (files.cv && files.cv.data) {
-            zip.file("cv.pdf", files.cv.data);
-          }
+          if (files.cv && files.cv.data) zip.file("cv.pdf", files.cv.data);
 
-          // README
-          const readme = `# CV Site - Generated Files
+          zip.file(
+            "README.txt",
+            `# CV Site - Generated Files
 
 ## What this ZIP contains:
 - \`index.html\` — main page
@@ -1326,8 +1293,8 @@ window.cvData = {
 - \`cv.pdf\` — your CV (if uploaded)
 
 Generated by CV Builder
-`;
-          zip.file("README.txt", readme);
+`,
+          );
 
           const blob = await zip.generateAsync({
             type: "blob",
@@ -1349,34 +1316,8 @@ Generated by CV Builder
         btn.disabled = false;
         btn.innerHTML = "⬇ Download ZIP";
       }
-      // ══════════════════════════════════════════════════════
-      //  TOAST
-      // ══════════════════════════════════════════════════════
-      let toastTimer;
-      function showToast(msg, type = "info") {
-        const t = document.getElementById("toast");
-        t.textContent = msg;
-        t.className = `toast show ${type}`;
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
-      }
 
-      // ══════════════════════════════════════════════════════
-      //  UTILS
-      // ══════════════════════════════════════════════════════
-      function esc(s) {
-        return String(s || "")
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
-      }
-
-      // ══════════════════════════════════════════════════════
-      //  INIT
-      // ══════════════════════════════════════════════════════
       function init() {
-        // Bind profile fields
         document.getElementById("p_name").value = state.profile.name;
         document.getElementById("p_title").value = state.profile.title;
         document.getElementById("p_titleSite").value = state.profile.titleSite;
