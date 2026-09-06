@@ -7,19 +7,18 @@ import Skills from "./components/Skills";
 import Contact from "./components/Contact";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
-// import { navLinks, profile } from "../public/data.js";
+//import { navLinks, profile } from "./public/data.js";
 
 export default function App() {
   const { navLinks, profile } = window.cvData;
   const [activeSection, setActiveSection] = useState("about");
-
+  let ids = navLinks.map((n) => n.id);
   useEffect(() => {
     document.title = `${profile.titleSite}`;
   }, []);
 
   // Highlight nav link based on scroll position
   useEffect(() => {
-    const ids = navLinks.map((n) => n.id);
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -32,6 +31,8 @@ export default function App() {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
+    
+    console.log(ids[1] == 'experience');
     return () => observer.disconnect();
   }, []);
 
@@ -41,7 +42,9 @@ export default function App() {
 
       <main className="max-w-3xl mx-auto px-5 pt-24 pb-28 space-y-20">
         <Hero />
-        <Experience />
+        
+        {ids[1] === 'experience' ? <Experience /> : null}
+
         <Education />
         <Skills />
         <Contact />
