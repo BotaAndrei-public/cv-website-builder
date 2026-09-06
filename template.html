@@ -2,23 +2,22 @@
 <html lang="ro">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="./favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CV</title>
 
-    <script src="./data.js"></script>
+   <script type="module" src="/data.js"></script>
 
     <script>
       if (window.cvData && window.cvData.profile) {
-        document.title = "CV - " + window.cvData.profile.name;
+        document.title = `CV - ${window.cvData.profile.titleSite}`;
       }
     </script>
-
-    <link rel="stylesheet" crossorigin href="./assets/index-B_1wDDE5.css" />
+    <script type="module" crossorigin src="/assets/index.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index.css">
   </head>
   <body>
     <div id="root"></div>
 
-    <script type="module" crossorigin src="./assets/index-g_ni_SwE.js"></script>
   </body>
 </html>
